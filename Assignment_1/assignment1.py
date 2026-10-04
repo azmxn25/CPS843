@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 
+# ============================================================
+# PART 1 - NOISE REDUCTION BY IMAGE AVERAGING
+# ============================================================
+
 def load_grayscale_image(image_path):
 
     image = Image.open(image_path).convert("L")
@@ -229,11 +233,195 @@ def run_part1():
 
     return mse_values
 
+# ============================================================
+# PART 2 - HISTOGRAM EQUALIZATION
+# ============================================================
+
+def histogram_equalization(image):
+
+    # Step 1a: Compute the histogram
+    counts = np.histogram(image.ravel(), bins=256, range=(0, 256))[0]
+
+    # Step 1b: Calculate the cumulative distribution function (CDF)
+
+    total_pixels = image.shape[0] * image.shape[1]
+
+    pdf = counts / total_pixels
+
+    # Step 2: Calculate CDF
+
+    cdf = np.cumsum(pdf)
+
+    lut = np.round(cdf * 255).astype(np.uint8)
+
+    # Step 3: Apply the LUT to the original image
+
+    equalized_image = lut[image]
+
+    return equalized_image, counts, pdf, cdf, lut
+
+def run_part2():
+
+    # =====================================================
+    # Load low-contrast image
+    # =====================================================
+
+    image_path = "images/low_contrast.png"
+
+    image = Image.open(image_path).convert("L")
+
+    # Keep this image in uint8 format for histogram equalization
+    image = np.array(image).astype(np.uint8)
+
+    print("Low-contrast image loaded successfully.")
+
+    # =====================================================
+    # Perform histogram equalization
+    # =====================================================
+
+    equalized_image, counts, pdf, cdf, lut = histogram_equalization(image)
+
+    # =====================================================
+    # Print some information about the histogram equalization process
+    # =====================================================
+
+    print("\nHistogram Equalization Completed")
+
+    print(f"Image dimensions: {image.shape}")
+    print(f"Number of pixels: {image.size}")
+
+    # =====================================================
+    # Display required 2x2 subplot
+    # =====================================================
+
+    plt.figure(figsize=(12, 8))
+
+    # --------------------------------------------------------
+    # Top-left:
+    # Original low-contrast image
+    # --------------------------------------------------------
+
+    plt.subplot(2, 2, 1)
+
+    plt.imshow(
+        image,
+        cmap="gray",
+        vmin=0,
+        vmax=255
+    )
+
+    plt.title("Original Low-Contrast Image")
+    plt.axis("off")
+
+    # --------------------------------------------------------
+    # Top-right:
+    # Equalized image
+    # --------------------------------------------------------
+
+    plt.subplot(2, 2, 2)
+
+    plt.imshow(
+        equalized_image,
+        cmap="gray",
+        vmin=0,
+        vmax=255
+    )
+
+    plt.title("Histogram-Equalized Image")
+    plt.axis("off")
+
+    # --------------------------------------------------------
+    # Bottom-left:
+    # Original histogram
+    # --------------------------------------------------------
+
+    plt.subplot(2, 2, 3)
+
+    plt.hist(
+        image.ravel(),
+        bins=256,
+        range=(0, 256)
+    )
+
+    plt.title("Original Image Histogram")
+    plt.xlabel("Intensity")
+    plt.ylabel("Frequency")
+
+    # --------------------------------------------------------
+    # Bottom-right:
+    # Equalized histogram
+    # --------------------------------------------------------
+
+    plt.subplot(2, 2, 4)
+
+    plt.hist(
+        equalized_image.ravel(),
+        bins=256,
+        range=(0, 256)
+    )
+
+    plt.title("Equalized Image Histogram")
+    plt.xlabel("Intensity")
+    plt.ylabel("Frequency")
+
+    plt.suptitle(
+        "Part 2: Histogram Equalization",
+        fontsize=16
+    )
+
+    plt.tight_layout()
+
+    # Save figure
+    plt.savefig(
+        "images/part2_histogram_equalization.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    plt.show()
+
+    # --------------------------------------------------------
+    # Optional: display the CDF mapping function
+    # --------------------------------------------------------
+
+    plt.figure(figsize=(8, 5))
+
+    plt.plot(
+        range(256),
+        lut
+    )
+
+    plt.xlabel("Input Intensity")
+    plt.ylabel("Output Intensity")
+    plt.title("Histogram Equalization Mapping Function")
+
+    plt.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(
+        "images/part2_mapping_function.png",
+        dpi=300,
+        bbox_inches="tight"
+    )
+
+    plt.show()
+
+    return equalized_image
+
 def main():
 
+    # --------------------------------------------------------
     # Run Part 1
+    # --------------------------------------------------------
 
     run_part1()
+
+    # --------------------------------------------------------
+    # Run Part 2
+    # --------------------------------------------------------
+
+    run_part2()
 
 # Run the program
 if __name__ == "__main__":
