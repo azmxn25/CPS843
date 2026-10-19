@@ -66,16 +66,10 @@ def part1_unsharp_and_highboost(image: np.ndarray) -> None:
     # Step B: subtract the blurred image from the original.
     # The mask contains positive and negative values, especially near edges.
     unsharp_mask = original - blurred
-    # The raw mask is not directly displayed well as a normal grayscale image
-    # because it contains negative values. Normalize it to 0..255 for display.
-    mask_min = float(unsharp_mask.min())
-    mask_max = float(unsharp_mask.max())
-    if mask_max > mask_min:
-        mask_display = (
-            (unsharp_mask - mask_min) / (mask_max - mask_min) * 255.0
-        ).astype(np.uint8)
-    else:
-        mask_display = np.zeros_like(image, dtype=np.uint8)
+    # The mask has negative values, so shift it to mid-gray (128) for display.
+    # A gain of 10 makes the faint edge responses visible.
+    MASK_GAIN = 10
+    mask_display = np.clip(128 + MASK_GAIN * unsharp_mask, 0, 255).astype(np.uint8)
     # Step C: sharpen using g = f + k * mask.
     # k=1 is standard unsharp masking; k>1 is high-boost filtering.
     sharpened = {}
@@ -97,7 +91,7 @@ def part1_unsharp_and_highboost(image: np.ndarray) -> None:
         (image, "Original grayscale image"),
         (np.clip(blurred, 0, 255).astype(np.uint8),
          f"Gaussian blur (kernel={BLUR_KERNEL_SIZE}, sigma={BLUR_SIGMA})"),
-        (mask_display, "Unsharp mask (normalized for display)"),
+        (mask_display, f"Unsharp mask (shifted by 128, gain = {MASK_GAIN})"),
         (sharpened[1.0], "Unsharp masking (k = 1)"),
         (sharpened[2.0], "High-boost filtering (k = 2)"),
         (sharpened[4.5], "High-boost filtering (k = 4.5)"),
@@ -140,11 +134,33 @@ def part2_canny_edge_detection(image: np.ndarray) -> None:
         save_grayscale(OUTPUT_DIR / filename, edges)
         results.append((config, edges))
         print(f"Saved {filename}")
+    # --- NMS and hysteresis demonstration (sigma = 0.8) ---
+    smoothed = cv2.GaussianBlur(image, (5, 5), 0.8)
+    gx = cv2.Sobel(smoothed, cv2.CV_32F, 1, 0)
+    gy = cv2.Sobel(smoothed, cv2.CV_32F, 0, 1)
+    mag = cv2.magnitude(gx, gy)
+    no_nms = (mag > 150).astype(np.uint8) * 255   # threshold only, no NMS
+    single = cv2.Canny(smoothed, 150, 150)        # one threshold, no hysteresis linking
+    double = cv2.Canny(smoothed, 50, 150)         # full Canny
+    demo = [
+        (no_nms, "Gradient magnitude > 150 (no NMS)"),
+        (single, "Canny, T_low = T_high = 150 (no hysteresis)"),
+        (double, "Canny, [50, 150] (NMS + hysteresis)"),
+    ]
+    fig, axes = plt.subplots(1, 3, figsize=(15, 8))
+    for ax, (img, title) in zip(axes, demo):
+        ax.imshow(255 - img, cmap="gray", vmin=0, vmax=255)
+        ax.set_title(title, fontsize=10)
+        ax.axis("off")
+    fig.suptitle("Role of non-maximum suppression and hysteresis", fontsize=14)
+    fig.tight_layout()
+    fig.savefig(OUTPUT_DIR / "part2_nms_hysteresis.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
     # Display only the six Canny edge maps in a 2-by-3 grid.
     # The original grayscale image is already shown in the Part 1 figure.
-    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+    fig, axes = plt.subplots(2, 3, figsize=(15, 12))
     for ax, (config, edges) in zip(axes.flat, results):
-        ax.imshow(edges, cmap="gray", vmin=0, vmax=255)
+        ax.imshow(255 - edges, cmap="gray", vmin=0, vmax=255)
         ax.set_title(
             f"σ={config['sigma']}, "
             f"Tlow={config['low']}, Thigh={config['high']}",
