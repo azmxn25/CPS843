@@ -1,0 +1,16 @@
+Point index,x,y,"RANSAC status (t=1.5, S=50)"
+1,1.0,2.2,Inlier
+2,1.5,3.1,Inlier
+3,2.0,14.5,Outlier
+4,2.5,4.9,Inlier
+5,3.0,5.8,Inlier
+6,3.5,-3.5,Outlier
+7,4.0,7.9,Inlier
+8,4.5,8.8,Inlier
+9,5.0,19.2,Outlier
+10,5.5,10.9,Inlier
+11,6.0,11.8,Inlier
+12,6.5,1.0,Outlier
+13,7.0,14.7,Inlier
+14,7.5,22.5,Outlier
+15,8.0,16.6,Inlier
